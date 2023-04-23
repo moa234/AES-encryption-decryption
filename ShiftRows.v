@@ -22,4 +22,5 @@ assign data_out[103 -: 8] = data_in[7 -: 8];
 assign data_out[71 -: 8] = data_in[103 -: 8];
 assign data_out[39 -: 8] = data_in[71 -: 8];
 assign data_out[7 -: 8] = data_in[39 -: 8];
+
 endmodule
