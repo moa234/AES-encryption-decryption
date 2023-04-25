@@ -1,6 +1,6 @@
 module ShiftRows (
-    input [N-1:0] data_in,
-    output reg[N-1:0] data_out
+    input [127:0] data_in,
+    output reg[127:0] data_out
 );
 
 assign data_out[127 -: 8] = data_in[127 -: 8];
