@@ -1,36 +1,43 @@
-module InvCipher (
+module InvCipher #(parameter Nk = 4, Nr = 10)(
     input [127:0] data_in,
-    input [127:0] key,
+    input [Nk * 32 - 1:0] key,
     output reg[127:0] data_out
 );
-reg [127:0] state[39:0];
-// AddRoundKey addr (
-//     .data_in(data_in),
-//     //.key(key),
-//     .data_out(state[0])
-// );
+wire [127:0] state[39:0];
+wire [(Nr + 1) * 128 - 1:0] w;
+
+KeyExpansion keyexp (
+    .key_in(key),
+    .key_out(w)
+);
+
+AddRoundKey invaddr (
+    .data_in(data_in),
+    .key(w[127 : 0]),
+    .data_out(state[0])
+);
 
 genvar i;
-for (i = 0;i < 9; i = i + 1) begin
-    InvShiftrows invsh (
-        .data_in(state[i * 4]),
-        .data_out(state[i * 4 + 1])
+for (i = 8;i >= 0; i = i - 1) begin
+    InvShiftRows invsh (
+        .data_in(state[32 - i * 4]),
+        .data_out(state[32 - i * 4 + 1])
     );
     InvSubByte invsubb (
-        .data_in(state[i * 4 + 1]),
-        .data_out(state[i * 4 + 2])
+        .data_in(state[32 - i * 4 + 1]),
+        .data_out(state[32 - i * 4 + 2])
     );
-    // AddRoundKey addr (
-    //     .data_in(state[i * 4 + 2]),
-    //     .key(key),
-    //     .data_out(state[i * 4 + 3])
-    // );
+    AddRoundKey invaddr1 (
+        .data_in(state[32 - i * 4 + 2]),
+        .key(w[(Nr + 1) * 128 - 1 - (i + 1) * 128 -: 128]),
+        .data_out(state[32 - i * 4 + 3])
+    );
     InvMixColumns invmixc (
-        .data_in(state[i * 4 + 3]),
-        .data_out(state[i * 4 + 4])
+        .data_in(state[32 - i * 4 + 3]),
+        .data_out(state[32 - i * 4 + 4])
     );
 end
-InvShiftrows invsh2 (
+InvShiftRows invsh2 (
     .data_in(state[36]),
     .data_out(state[37])
 );
@@ -38,11 +45,12 @@ InvSubByte invsubb2 (
     .data_in(state[37]),
     .data_out(state[38])
 );
-// AddRoundKey addr2 (
-//     .data_in(state[38]),
-//     .key(key),
-//     .data_out(data_out)
-// );
+AddRoundKey invaddr2 (
+    .data_in(state[38]),
+    .key(w[(Nr + 1) * 128 - 1 -: 128]),
+    .data_out(state[39])
+);
 
+assign data_out = state[39];
     
 endmodule

@@ -31,7 +31,7 @@ for (i = 0;i < 9; i = i + 1) begin
         .data_in(state[i * 4 + 2]),
         .data_out(state[i * 4 + 3])
     );
-    AddRoundKey addr (
+    AddRoundKey addr1 (
         .data_in(state[i * 4 + 3]),
         .key(w[(Nr + 1) * 128 - 1 - (i + 1) * 128 -: 128]),
         .data_out(state[i * 4 + 4])
