@@ -13,20 +13,21 @@ KeyExpansion keyexp (
 
 integer i;
 always @(*) begin
-	state[0] = AddRoundKey(data_in, w[(Nr + 1) * 128 - 1 -: 128]);
+	state[0] <= AddRoundKey(data_in, w[(Nr + 1) * 128 - 1 -: 128]);
 	for (i = 0;i < Nr - 1; i = i + 1) begin
-		 state[i * 4 + 1] = SubBytes(state[i * 4]); 
-		 state[i * 4 + 2] =	ShiftRows(state[i * 4 + 1]);
-		 state[i * 4 + 3] =	MixColumns(state[i * 4 + 2]);
-		 state[i * 4 + 4] =	AddRoundKey(state[i * 4 + 3], w[(Nr + 1) * 128 - 1 - (i + 1) * 128 -: 128]);
+		 state[i * 4 + 1] <= SubBytes(state[i * 4]); 
+		 state[i * 4 + 2] <= ShiftRows(state[i * 4 + 1]);
+		 state[i * 4 + 3] <= MixColumns(state[i * 4 + 2]);
+		 state[i * 4 + 4] <= AddRoundKey(state[i * 4 + 3], w[(Nr + 1) * 128 - 1 - (i + 1) * 128 -: 128]);
 	end
-	state[Nr * 4 - 3] = SubBytes(state[Nr * 4 - 4]);
-	state[Nr * 4 - 2] = ShiftRows(state[Nr * 4 - 3]);
-	data_out = AddRoundKey(state[Nr * 4 - 2], w[127 : 0]);
+	state[Nr * 4 - 3] <= SubBytes(state[Nr * 4 - 4]);
+	state[Nr * 4 - 2] <= ShiftRows(state[Nr * 4 - 3]);
+	data_out <= AddRoundKey(state[Nr * 4 - 2], w[127 : 0]);
 end
 
 function [127:0] SubBytes;
 	input [127:0] data_in;
+	integer i;
 	begin
 		for (i = 0;i < 16; i = i + 1) begin
 			SubBytes[i * 8 +: 8] = SubByte(data_in[i * 8 +: 8]);
@@ -331,6 +332,7 @@ endfunction
 
 function [127:0] MixColumns;
 	input [127:0] data_in;
+	integer i;
 	begin
 		for (i = 0; i < 4; i = i + 1) begin
 			MixColumns[127 - 32*i -: 8] = GF28mul(2,data_in[127 - 32*i -: 8]) ^ GF28mul(3,data_in[119 - 32*i-: 8]) 
