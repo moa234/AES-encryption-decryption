@@ -1,9 +1,10 @@
 module Cipher #(parameter Nk = 4, Nr = 10)(
     input [127:0] data_in,
     input [Nk * 32 - 1:0] key,
+    input clk,
     output reg[127:0] data_out
 );
-reg [127:0] state[Nr * 4 - 1:0];
+reg [127:0] state;
 wire [(Nr + 1) * 128 - 1:0] w;
 
 KeyExpansion keyexp (
@@ -11,18 +12,24 @@ KeyExpansion keyexp (
     .key_out(w)
 ); 
 
-integer i;
-always @(*) begin
-	state[0] <= AddRoundKey(data_in, w[(Nr + 1) * 128 - 1 -: 128]);
-	for (i = 0;i < Nr - 1; i = i + 1) begin
-		 state[i * 4 + 1] <= SubBytes(state[i * 4]); 
-		 state[i * 4 + 2] <= ShiftRows(state[i * 4 + 1]);
-		 state[i * 4 + 3] <= MixColumns(state[i * 4 + 2]);
-		 state[i * 4 + 4] <= AddRoundKey(state[i * 4 + 3], w[(Nr + 1) * 128 - 1 - (i + 1) * 128 -: 128]);
-	end
-	state[Nr * 4 - 3] <= SubBytes(state[Nr * 4 - 4]);
-	state[Nr * 4 - 2] <= ShiftRows(state[Nr * 4 - 3]);
-	data_out <= AddRoundKey(state[Nr * 4 - 2], w[127 : 0]);
+integer i = 0;
+always @(posedge clk) begin
+    if(i == 0) begin
+        state = AddRoundKey(data_in, w[(Nr + 1) * 128 - 1 -: 128]);
+    end
+    else if(i < Nr)begin
+        state = SubBytes(state); 
+        state = ShiftRows(state);
+        state = MixColumns(state);
+        state = AddRoundKey(state, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+    end
+    else if (i == Nr) begin
+        state = SubBytes(state); 
+        state = ShiftRows(state);
+        data_out = AddRoundKey(state, w[127 : 0]);
+    end
+	 i = i + 1;
+
 end
 
 function [127:0] SubBytes;
