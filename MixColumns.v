@@ -1,24 +1,24 @@
 module MixColumns (
     input [127:0] data_in,
-    output reg[127:0] data_out
+    output [127:0] data_out
 );
-integer i;
 
-always @(data_in) begin
-    for (i = 0; i < 4; i = i + 1) begin
-        data_out[127 - 32*i -: 8] = GF28mul(2,data_in[127 - 32*i -: 8]) ^ GF28mul(3,data_in[119 - 32*i-: 8]) 
+genvar i;
+generate
+    for (i = 0; i < 4; i = i + 1) begin : mixing
+        assign data_out[127 - 32*i -: 8] = GF28mul(2,data_in[127 - 32*i -: 8]) ^ GF28mul(3,data_in[119 - 32*i-: 8]) 
          ^ data_in[111 - 32*i -: 8] ^ data_in[103  - 32*i-: 8];
 
-        data_out[119 - 32*i -: 8] = GF28mul(2,data_in[119 - 32*i -: 8]) ^ GF28mul(3,data_in[111 - 32*i -: 8]) 
+        assign data_out[119 - 32*i -: 8] = GF28mul(2,data_in[119 - 32*i -: 8]) ^ GF28mul(3,data_in[111 - 32*i -: 8]) 
          ^ data_in[103 - 32*i -: 8] ^ data_in[127 - 32*i -: 8];
 
-        data_out[111 - 32*i -: 8] = GF28mul(2,data_in[111 - 32*i -: 8]) ^ GF28mul(3,data_in[103 - 32*i -: 8])
+        assign data_out[111 - 32*i -: 8] = GF28mul(2,data_in[111 - 32*i -: 8]) ^ GF28mul(3,data_in[103 - 32*i -: 8])
          ^ data_in[127 - 32*i -: 8] ^ data_in[119 - 32*i -: 8];
 
-        data_out[103 - 32*i -: 8] = GF28mul(2,data_in[103 - 32*i -: 8]) ^ GF28mul(3,data_in[127 - 32*i -: 8])
+        assign data_out[103 - 32*i -: 8] = GF28mul(2,data_in[103 - 32*i -: 8]) ^ GF28mul(3,data_in[127 - 32*i -: 8])
          ^ data_in[119 - 32*i -: 8] ^ data_in[111 - 32*i -: 8];
     end
-end
+endgenerate
 
 function [7:0] GF28mul;
     input [7:0] a, b;
@@ -27,8 +27,7 @@ function [7:0] GF28mul;
     integer i;
     begin
         p = 8'b0;
-        for (i = 0; i < 8; i = i + 1)
-        begin
+        for (i = 0; i < 8; i = i + 1) begin
             if (b[0] == 1'b1)
             begin
                 p = a ^ p;
