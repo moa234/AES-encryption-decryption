@@ -24,19 +24,14 @@ always @(posedge clk) begin
     if (k == 0) begin
         last = state[0];
     end
-    else if(k <= Nr - 1)begin
+    else if(k < Nr - 1) begin
         last = state[4];
     end
-    else begin
+    else if(k == Nr - 1) begin
         data_out = state[7];
     end
     
-    if (k < Nr) begin
-        k = k + 1;
-    end
-    else begin
-        k = 0;
-    end
+    k = k + 1;
 end
 SubBytes subb (
     .data_in(last),
