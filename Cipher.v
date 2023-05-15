@@ -4,7 +4,8 @@ module Cipher #(parameter Nk = 4, Nr = 10)(
     input clk,
     output reg[127:0] data_out
 );
-reg [127:0] state;
+reg [127:0] data;
+reg [1:0] state = 'b00;
 wire [(Nr + 1) * 128 - 1:0] w;
 
 KeyExpansion keyexp (
@@ -14,22 +15,38 @@ KeyExpansion keyexp (
 
 integer i = 0;
 always @(posedge clk) begin
-    if(i == 0) begin
-        state = AddRoundKey(data_in, w[(Nr + 1) * 128 - 1 -: 128]);
-    end
-    else if(i < Nr)begin
-        state = SubBytes(state); 
-        state = ShiftRows(state);
-        state = MixColumns(state);
-        state = AddRoundKey(state, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
-    end
-    else if (i == Nr) begin
-        state = SubBytes(state); 
-        state = ShiftRows(state);
-        data_out = AddRoundKey(state, w[127 : 0]);
-    end
-	 i = i + 1;
-
+    case (state)
+        'b00:begin
+            if (i == 0) begin
+                data = data_in;
+            end
+            data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+            state = 'b01;
+            if (i == Nr) begin
+                data_out = data;
+            end
+        end 
+        'b01:begin
+            data = SubBytes(data); 
+            state = 'b10;
+        end
+        'b10:begin
+            data = ShiftRows(data);
+            if (i == Nr - 1) begin
+                i = i + 1;
+                state = 'b00;
+            end 
+            else begin
+                state = 'b11;
+            end
+        end
+        'b11:begin
+            data = MixColumns(data);
+            state = 'b00;
+            i = i + 1;
+        end
+    endcase
+    
 end
 
 function [127:0] SubBytes;
