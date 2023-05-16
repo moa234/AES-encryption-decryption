@@ -37,6 +37,6 @@ module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
             end
     end
 
-    assign data = regis;
+    assign regis = data;
 
 endmodule
