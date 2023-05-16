@@ -51,7 +51,7 @@ Cipher enc(
     .data_in(data_in),
     .w(w),
     .rst(rst),
-    .en(exdone),
+    .en(exdone && ddone),
     .data_out(encrypted)
 );
     
