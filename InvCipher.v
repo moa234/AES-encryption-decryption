@@ -1,62 +1,79 @@
 module InvCipher #(parameter Nk = 4, Nr = 10)(
-    input [127:0] data_in,
+      input [127:0] data_in,
+    //input [(Nr + 1) * 128 - 1:0] w,
+    input rst,
+    //input en,
+    input clk,
     input [Nk * 32 - 1:0] key,
     output reg[127:0] data_out
 );
-wire [127:0] state[Nr * 4 - 1:0];
 wire [(Nr + 1) * 128 - 1:0] w;
-
+reg [127:0] data;
+reg [2:0] state = 'b000;
+wire en;
 KeyExpansion keyexp (
-    .key_in(key),
-    .key_out(w)
+     . key_in(key),
+    .key_out(w),
+    . rst(rst),
+    . en(1),
+    . clk(clk),
+    . done(en) 
 );
 
-AddRoundKey invaddr (
-    .data_in(data_in),
-    .key(w[127 : 0]),
-    .data_out(state[0])
-);
 
-genvar i;
-generate
-for (i = Nr - 2;i >= 0; i = i - 1) begin : maininv
-    InvShiftRows invsh (
-        .data_in(state[Nr * 4 - 8 - i * 4]),
-        .data_out(state[Nr * 4 - 8 - i * 4 + 1])
-    );
-    InvSubByte invsubb (
-        .data_in(state[Nr * 4 - 8 - i * 4 + 1]),
-        .data_out(state[Nr * 4 - 8 - i * 4 + 2])
-    );
-    AddRoundKey invaddr1 (
-        .data_in(state[Nr * 4 - 8 - i * 4 + 2]),
-        .key(w[(Nr + 1) * 128 - 1 - (i + 1) * 128 -: 128]),
-        .data_out(state[Nr * 4 - 8 - i * 4 + 3])
-    );
-    InvMixColumns invmixc (
-        .data_in(state[Nr * 4 - 8 - i * 4 + 3]),
-        .data_out(state[Nr * 4 - 8 - i * 4 + 4])
-    );
+
+
+
+integer i = 0;
+always @(posedge clk && en, posedge rst) begin
+    if (rst) begin
+        state = 'b000;
+        i = 0;
+    end
+    else begin
+        case (state)
+            'b000:begin
+                if (i == 0) begin
+                    data = data_in;
+                    state='b001;
+                end
+                else if(i==Nr-1) begin 
+                    state='b111;
+                    data_out = data;
+                end
+                
+                else begin 
+                     state='b011; 
+                end
+
+                data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+                
+             
+            end 
+            'b001:begin
+                data = InvShiftRows(data);
+                state = 'b010;
+            end
+            'b010:begin
+                data = invSubBytes(data);
+              
+                    
+                    state = 'b000;
+              
+               
+            end
+            'b011:begin
+                data = InvMixColumns(data);
+                state = 'b000;
+                i = i + 1;
+            end
+            default:begin
+                
+            end
+        endcase
+    end
+    
 end
-endgenerate
-InvShiftRows invsh2 (
-    .data_in(state[Nr * 4 - 4]),
-    .data_out(state[Nr * 4 - 3])
-);
-InvSubByte invsubb2 (
-    .data_in(state[Nr * 4 - 3]),
-    .data_out(state[Nr * 4 - 2])
-);
-AddRoundKey invaddr2 (
-    .data_in(state[Nr * 4 - 2]),
-    .key(w[(Nr + 1) * 128 - 1 -: 128]),
-    .data_out(state[Nr * 4 - 1])
-);
-
-always @(state[Nr * 4 - 1]) begin
-	data_out = state[Nr * 4 - 1];
-end
-
 function [127:0] invSubBytes;
 	input [127:0] data_in;
 	integer i;
@@ -329,5 +346,77 @@ function [7:0] invSubByte;
             8'hff: invSubByte =8'h7d;
         endcase
 endfunction
+
+function [127:0] AddRoundKey;
+	input [127:0] data_in, key;
+	AddRoundKey = data_in ^ key;
+endfunction
+
+function [127:0] InvShiftRows;
+	input [127:0] data_in;
+	begin
+    InvShiftRows[127 -: 8] = data_in[127 -: 8];
+    InvShiftRows[95  -: 8] = data_in[95  -: 8];
+    InvShiftRows[63  -: 8] = data_in[63  -: 8];
+    InvShiftRows[31  -: 8] = data_in[31  -: 8];
+    
+    InvShiftRows[119 -: 8] = data_in[23 -: 8];
+    InvShiftRows[87  -: 8] = data_in[119 -: 8];
+    InvShiftRows[55  -: 8] = data_in[87  -: 8];
+    InvShiftRows[23  -: 8] = data_in[55  -: 8];
+    
+    InvShiftRows[111 -: 8] = data_in[47 -: 8];
+    InvShiftRows[79  -: 8] = data_in[15 -: 8];
+    InvShiftRows[47  -: 8] = data_in[111 -: 8];
+    InvShiftRows[15  -: 8] = data_in[79  -: 8];
+    
+    InvShiftRows[103 -: 8] = data_in[71 -: 8];
+    InvShiftRows[71  -: 8] = data_in[39 -: 8];
+    InvShiftRows[39  -: 8] = data_in[7  -: 8];
+    InvShiftRows[7   -: 8] = data_in[103 -: 8];
+	end
+endfunction
+
+function [127:0] InvMixColumns;
+	input [127:0] data_in;
+	integer i;
+	begin
+		for (i = 0; i < 4; i = i + 1) begin
+			        InvMixColumns[127 - 32*i -: 8] = GF28mul('he,data_in[127 - 32*i -: 8]) ^ GF28mul('hb,data_in[119 - 32*i-: 8]) 
+         ^ GF28mul('hd,data_in[111 - 32*i -: 8]) ^ GF28mul('h9,data_in[103 - 32*i -: 8]);
+
+        InvMixColumns[119 - 32*i -: 8] = GF28mul('h9,data_in[127 - 32*i -: 8]) ^ GF28mul('he,data_in[119 - 32*i-: 8]) 
+         ^ GF28mul('hb,data_in[111 - 32*i -: 8]) ^ GF28mul('hd,data_in[103 - 32*i -: 8]);
+
+        InvMixColumns[111 - 32*i -: 8] = GF28mul('hd,data_in[127 - 32*i -: 8]) ^ GF28mul('h9,data_in[119 - 32*i-: 8]) 
+         ^ GF28mul('he,data_in[111 - 32*i -: 8]) ^ GF28mul('hb,data_in[103 - 32*i -: 8]);
+
+        InvMixColumns[103 - 32*i -: 8] = GF28mul('hb,data_in[127 - 32*i -: 8]) ^ GF28mul('hd,data_in[119 - 32*i-: 8]) 
+         ^ GF28mul('h9,data_in[111 - 32*i -: 8]) ^ GF28mul('he,data_in[103 - 32*i -: 8]);		end
+	end
+endfunction
+function [7:0] GF28mul;
+    input [7:0] a, b;
+    reg [7:0] p;
+    reg ahi;
+    integer i;
+    begin
+        p = 8'b0;
+        for (i = 0; i < 8; i = i + 1)
+        begin
+            if (b[0] == 1'b1)
+            begin
+                p = a ^ p;
+            end
+            ahi = a[7];
+            a = a << 1;
+            if (ahi == 1'b1) begin
+                a = a ^ 8'h1b;
+            end
+            b = b >> 1;
+        end
+        GF28mul = p;
+    end
+endfunction 
     
 endmodule
