@@ -8,50 +8,52 @@ module Cipher #(parameter Nk = 4, Nr = 10)(
 reg [127:0] data;
 reg [1:0] state = 'b00;
 wire [(Nr + 1) * 128 - 1:0] w;
+wire keydone;
 
 KeyExpansion keyexp (
     .key_in(key),
-    .key_out(w)
+    .key_out(w),
+    .clk(clk),
+    .done(keydone)
 ); 
 
+
+
 integer i = 0;
-always @(posedge clk, posedge rst) begin
-    if (rst) begin
-        state = 'b00;
-        i = 0;
-    end
-    else
-        case (state)
-            'b00:begin
-                if (i == 0) begin
-                    data = data_in;
-                end
-                data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
-                state = 'b01;
-                if (i == Nr) begin
-                    data_out = data;
-                end
-            end 
-            'b01:begin
-                data = SubBytes(data); 
-                state = 'b10;
+always @(posedge clk && keydone) begin
+    case (state)
+        'b00:begin
+            if (i == 0) begin
+                data = data_in;
             end
-            'b10:begin
-                data = ShiftRows(data);
-                if (i == Nr - 1) begin
-                    i = i + 1;
-                    state = 'b00;
-                end 
-                else begin
-                    state = 'b11;
-                end
+            data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+            state = 'b01;
+            if (i == Nr) begin
+                data_out = data;
             end
-            'b11:begin
-                data = MixColumns(data);
-                state = 'b00;
+        end 
+        'b01:begin
+            data = SubBytes(data); 
+            state = 'b10;
+        end
+        'b10:begin
+            data = ShiftRows(data);
+            if (i == Nr - 1) begin
                 i = i + 1;
+                state = 'b00;
+            end 
+            else begin
+                state = 'b11;
             end
-        endcase
+        end
+        'b11:begin
+            data = MixColumns(data);
+            state = 'b00;
+            i = i + 1;
+        end
+    endcase
+    
+    
 end
 
 function [127:0] SubBytes;
