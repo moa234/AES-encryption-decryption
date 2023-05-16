@@ -10,7 +10,7 @@ reg [127:0] data;
 reg [2:0] state = 'b000;
 
 integer i = 0;
-always @(posedge clk, posedge rst) begin
+always @(posedge clk && en, posedge rst) begin
     if (rst) begin
         state = 'b000;
         i = 0;

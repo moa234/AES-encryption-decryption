@@ -1,54 +1,37 @@
 module InvCipher #(parameter Nk = 4, Nr = 10)(
       input [127:0] data_in,
-    //input [(Nr + 1) * 128 - 1:0] w,
+    input [(Nr + 1) * 128 - 1:0] w,
     input rst,
-    //input en,
+    input en,
     input clk,
     input [Nk * 32 - 1:0] key,
     output reg[127:0] data_out
 );
-wire [(Nr + 1) * 128 - 1:0] w;
 reg [127:0] data;
 reg [2:0] state = 'b000;
-wire en;
-KeyExpansion keyexp (
-     . key_in(key),
-    .key_out(w),
-    . rst(rst),
-    . en(1),
-    . clk(clk),
-    . done(en) 
-);
 
 
-
-
-
-integer i = 0;
+integer i = Nr;
 always @(posedge clk && en, posedge rst) begin
     if (rst) begin
         state = 'b000;
-        i = 0;
+        i = Nr;
     end
     else begin
         case (state)
             'b000:begin
-                if (i == 0) begin
+                if (i == Nr) begin
                     data = data_in;
                     state='b001;
                 end
-                else if(i==Nr-1) begin 
+                data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+                if(i == 0) begin 
                     state='b111;
                     data_out = data;
                 end
-                
-                else begin 
+                else if(i < Nr) begin 
                      state='b011; 
                 end
-
-                data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
-                
-             
             end 
             'b001:begin
                 data = InvShiftRows(data);
@@ -56,16 +39,14 @@ always @(posedge clk && en, posedge rst) begin
             end
             'b010:begin
                 data = invSubBytes(data);
-              
-                    
-                    state = 'b000;
-              
-               
+                state = 'b000; 
+                if (i == Nr)
+                    i = i - 1;
             end
             'b011:begin
                 data = InvMixColumns(data);
-                state = 'b000;
-                i = i + 1;
+                state = 'b001;
+                i = i - 1;
             end
             default:begin
                 
@@ -87,7 +68,7 @@ endfunction
 
 function [7:0] invSubByte;
     input [7:0] data_in;
-        case (data_in[i +: 8])
+        case (data_in)
             8'h00: invSubByte =8'h52;
             8'h01: invSubByte =8'h09;
             8'h02: invSubByte =8'h6a;
