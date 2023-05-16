@@ -1,6 +1,7 @@
 module Cipher #(parameter Nk = 4, Nr = 10)(
     input [127:0] data_in,
     input [Nk * 32 - 1:0] key,
+    input rst,
     input clk,
     output reg[127:0] data_out
 );
@@ -14,39 +15,43 @@ KeyExpansion keyexp (
 ); 
 
 integer i = 0;
-always @(posedge clk) begin
-    case (state)
-        'b00:begin
-            if (i == 0) begin
-                data = data_in;
-            end
-            data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
-            state = 'b01;
-            if (i == Nr) begin
-                data_out = data;
-            end
-        end 
-        'b01:begin
-            data = SubBytes(data); 
-            state = 'b10;
-        end
-        'b10:begin
-            data = ShiftRows(data);
-            if (i == Nr - 1) begin
-                i = i + 1;
-                state = 'b00;
+always @(posedge clk, posedge rst) begin
+    if (rst) begin
+        state = 'b00;
+        i = 0;
+    end
+    else
+        case (state)
+            'b00:begin
+                if (i == 0) begin
+                    data = data_in;
+                end
+                data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+                state = 'b01;
+                if (i == Nr) begin
+                    data_out = data;
+                end
             end 
-            else begin
-                state = 'b11;
+            'b01:begin
+                data = SubBytes(data); 
+                state = 'b10;
             end
-        end
-        'b11:begin
-            data = MixColumns(data);
-            state = 'b00;
-            i = i + 1;
-        end
-    endcase
-    
+            'b10:begin
+                data = ShiftRows(data);
+                if (i == Nr - 1) begin
+                    i = i + 1;
+                    state = 'b00;
+                end 
+                else begin
+                    state = 'b11;
+                end
+            end
+            'b11:begin
+                data = MixColumns(data);
+                state = 'b00;
+                i = i + 1;
+            end
+        endcase
 end
 
 function [127:0] SubBytes;
