@@ -1,7 +1,9 @@
 module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
     input clk,
+    output sclk,
     input rst,
     input cs,
+    output scs,
     input miso,
     output reg mosi,
     output reg done = 0,
@@ -13,7 +15,7 @@ module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
 
     always @(posedge clk, posedge rst) begin
         if (rst) begin
-            regis <= 128'h00000000000000000000000000000000;
+            regis <= data;
             state <= 0;
         end else begin
             if(!cs && counter < datasize) begin
@@ -36,7 +38,7 @@ module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
                     done <= 1'b1;
             end
     end
-
-    assign regis = data;
+    assign sclk = clk;
+    assign scs = cs;
 
 endmodule
