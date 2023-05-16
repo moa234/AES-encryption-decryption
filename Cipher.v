@@ -1,35 +1,60 @@
 module Cipher #(parameter Nk = 4, Nr = 10)(
     input [127:0] data_in,
-    input [Nk * 32 - 1:0] key,
+    input [(Nr + 1) * 128 - 1:0] w,
+    input rst,
+    input en,
     input clk,
     output reg[127:0] data_out
 );
-reg [127:0] state;
-wire [(Nr + 1) * 128 - 1:0] w;
-
-KeyExpansion keyexp (
-    .key_in(key),
-    .key_out(w)
-); 
+reg [127:0] data;
+reg [2:0] state = 'b000;
 
 integer i = 0;
-always @(posedge clk) begin
-    if(i == 0) begin
-        state = AddRoundKey(data_in, w[(Nr + 1) * 128 - 1 -: 128]);
+always @(posedge clk && en, posedge rst) begin
+    if (rst) begin
+        state = 'b000;
+        i = 0;
     end
-    else if(i < Nr)begin
-        state = SubBytes(state); 
-        state = ShiftRows(state);
-        state = MixColumns(state);
-        state = AddRoundKey(state, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+    else begin
+        case (state)
+            'b000:begin
+                if (i == 0) begin
+                    data = data_in;
+                end
+                data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
+                if (i == Nr) begin
+                    data_out = data;
+                    state = 'b111;
+                end
+                else begin
+                    state = 'b001;
+                end
+            end 
+            'b001:begin
+                data = SubBytes(data); 
+                state = 'b010;
+            end
+            'b010:begin
+                data = ShiftRows(data);
+                if (i == Nr - 1) begin
+                    i = i + 1;
+                    state = 'b000;
+                end 
+                else begin
+                    state = 'b011;
+                end
+            end
+            'b011:begin
+                data = MixColumns(data);
+                state = 'b000;
+                i = i + 1;
+            end
+            default:begin
+                
+            end
+        endcase
     end
-    else if (i == Nr) begin
-        state = SubBytes(state); 
-        state = ShiftRows(state);
-        data_out = AddRoundKey(state, w[127 : 0]);
-    end
-	 i = i + 1;
-
+    
 end
 
 function [127:0] SubBytes;
