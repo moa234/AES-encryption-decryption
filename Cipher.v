@@ -7,14 +7,19 @@ module Cipher #(parameter Nk = 4, Nr = 10)(
 reg [127:0] data;
 reg [1:0] state = 'b00;
 wire [(Nr + 1) * 128 - 1:0] w;
+wire keydone;
 
 KeyExpansion keyexp (
     .key_in(key),
-    .key_out(w)
+    .key_out(w),
+    .clk(clk),
+    .done(keydone)
 ); 
 
+
+
 integer i = 0;
-always @(posedge clk) begin
+always @(posedge clk && keydone) begin
     case (state)
         'b00:begin
             if (i == 0) begin
@@ -46,6 +51,7 @@ always @(posedge clk) begin
             i = i + 1;
         end
     endcase
+    
     
 end
 
