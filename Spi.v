@@ -10,6 +10,7 @@ module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
     reg state = 0;
     reg [datasize - 1:0] regis = 0;
     integer counter = 0;
+    reg rec;
 
     always @(posedge clk, posedge rst) begin
         if (rst) begin
@@ -17,7 +18,7 @@ module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
             state <= 0;
         end else begin
             if(!cs && counter < datasize) begin
-                regis <= {regis[datasize - 2:0], mosi};
+                rec = mosi;
                 state <= !cs;   
             end
             else
@@ -30,8 +31,9 @@ module Spi #(parameter Nk = 4, Nr = 10, datasize = 128)(
             miso <= 1'b0;
         else
             if(state == 1 && !cs) begin
+                miso = regis[datasize - 1];
+                regis <= {regis[datasize - 2:0], rec};
                 counter = counter + 1;
-                miso <= regis[datasize - 1];
                 if(counter == datasize)
                     done <= 1'b1;
             end
