@@ -5,9 +5,11 @@ module Aes #(parameter Nk = 4, Nr = 10) (
     input cs2,
     input mosi,
     output misod,
+    output donedec,
+    output doneenc,
 	output misok,
     output [127:0] encrypted,
-    output reg [127:0] decrypted
+    output [127:0] decrypted
 );
 
 wire [127:0] data_in;
@@ -15,7 +17,9 @@ wire [Nk * 32 - 1:0] key;
 wire [(Nr + 1) * 128 - 1:0] w;
 wire ddone;
 wire kdone;
+wire cdone;
 wire expdone;
+wire [127:0] encrypteddata;
 
 Spi #(.datasize(128))d (
     .clk(clk),
@@ -51,8 +55,22 @@ Cipher enc(
     .data_in(data_in),
     .w(w),
     .rst(rst),
-    .en(exdone && ddone),
-    .data_out(encrypted)
+    .done(cdone),
+    .en(expdone & ddone),
+    .data_out(encrypteddata)
+);
+
+assign encrypted = encrypteddata;
+assign doneenc = cdone;
+
+InvCipher dec(
+    .clk(clk),
+    .data_in(encrypteddata),
+    .w(w),
+    .rst(rst),
+    .en(cdone),
+    .done(donedec),
+    .data_out(decrypted)
 );
     
 endmodule

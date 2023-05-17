@@ -3,6 +3,7 @@ module Cipher #(parameter Nk = 4, Nr = 10)(
     input [(Nr + 1) * 128 - 1:0] w,
     input rst,
     input en,
+    output reg done = 0,
     input clk,
     output reg[127:0] data_out
 );
@@ -24,6 +25,7 @@ always @(posedge clk && en, posedge rst) begin
                 data = AddRoundKey(data, w[(Nr + 1) * 128 - 1 - i * 128 -: 128]);
                 if (i == Nr) begin
                     data_out = data;
+                    done = 1;
                     state = 'b111;
                 end
                 else begin

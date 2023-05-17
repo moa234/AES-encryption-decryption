@@ -4,6 +4,7 @@ module InvCipher #(parameter Nk = 4, Nr = 10)(
     input rst,
     input en,
     input clk,
+    output reg done = 0,
     input [Nk * 32 - 1:0] key,
     output reg[127:0] data_out
 );
@@ -28,6 +29,7 @@ always @(posedge clk && en, posedge rst) begin
                 if(i == 0) begin 
                     state='b111;
                     data_out = data;
+                    done = 1;
                 end
                 else if(i < Nr) begin 
                      state='b011; 
