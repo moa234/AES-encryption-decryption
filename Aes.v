@@ -21,7 +21,7 @@ wire cdone;
 wire expdone;
 wire [127:0] encrypteddata;
 
-Spi #(.datasize(128))d (
+Spi #(.Nr(Nr), .Nk(Nk), .datasize(128))d (
     .clk(clk),
     .rst(rst),
     .cs(cs1),
@@ -31,7 +31,7 @@ Spi #(.datasize(128))d (
     .data(data_in)
 );
 
-KeyExpansion kex(
+KeyExpansion #(.Nr(Nr), .Nk(Nk)) kex(
     .key_in(key),
     .key_out(w),
     .rst(rst),
@@ -40,7 +40,7 @@ KeyExpansion kex(
     .done(expdone)
 );
 
-Spi #(.datasize(Nk * 32)) k  (
+Spi #(.Nr(Nr), .Nk(Nk), .datasize(Nk * 32)) k  (
     .clk(clk),
     .rst(rst),
     .cs(cs2),
@@ -50,7 +50,7 @@ Spi #(.datasize(Nk * 32)) k  (
     .data(key)
 );
 
-Cipher enc(
+Cipher #(.Nr(Nr), .Nk(Nk)) enc(
     .clk(clk),
     .data_in(data_in),
     .w(w),
@@ -63,7 +63,7 @@ Cipher enc(
 assign encrypted = encrypteddata;
 assign doneenc = cdone;
 
-InvCipher dec(
+InvCipher #(.Nr(Nr), .Nk(Nk)) dec(
     .clk(clk),
     .data_in(encrypteddata),
     .w(w),
