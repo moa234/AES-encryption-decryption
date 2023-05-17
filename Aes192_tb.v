@@ -14,7 +14,7 @@ wire misok;
 wire [127:0] encrypted;
 wire [127:0] decrypted;
 reg [127:0] data = 128'h00112233445566778899aabbccddeeff;
-reg [192:0] key = 192'h000102030405060708090a0b0c0d0e0f1011121314151617;
+reg [191:0] key = 192'h000102030405060708090a0b0c0d0e0f1011121314151617;
 reg [127:0] expectedenc = 128'hdda97ca4864cdfe06eaf70a0ec0d7191;
 reg [127:0] expecteddec = 128'h00112233445566778899aabbccddeeff;
 reg mosi;
@@ -81,7 +81,7 @@ always @(negedge clk, posedge rst) begin
             end
             if (!cs2) begin
                 mosi = key[191];
-                key = {key[191:0], recieved};
+                key = {key[190:0], recieved};
                 i = i + 1;
                 if (i == 129 + 193) begin
                     cs1 = 1;

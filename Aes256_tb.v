@@ -81,7 +81,7 @@ always @(negedge clk, posedge rst) begin
             end
             if (!cs2) begin
                 mosi = key[255];
-                key = {key[255:0], recieved};
+                key = {key[254:0], recieved};
                 i = i + 1;
                 if (i == 129 + 257) begin
                     cs1 = 1;
