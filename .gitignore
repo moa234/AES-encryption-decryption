@@ -1,3 +1,8 @@
 /transcript
 /vsim.wlf
 /work
+AES.cr.mti
+AES.mpfs
+*.bak
+Cipher.v.bak
+AES.mpf
